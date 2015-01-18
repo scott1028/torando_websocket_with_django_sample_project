@@ -21,10 +21,14 @@ socket.on('connect', function () {
 });
 
 socket.on('announcement', function (msg) {
+    console.debug('announcement!', msg);
+
     $('#lines').append($('<p>').append($('<em>').text(msg)));
 });
 
 socket.on('nicknames', function (nicknames) {
+    console.debug('nicknames!', nicknames);
+
     $('#nicknames').empty().append($('<span>Online: </span>'));
     for (var i in nicknames) {
 	  $('#nicknames').append($('<b>').text(nicknames[i]));
@@ -34,19 +38,27 @@ socket.on('nicknames', function (nicknames) {
 socket.on('msg_to_room', message);
 
 socket.on('reconnect', function () {
+    console.debug('reconnect!');
+
     $('#lines').remove();
     message('System', 'Reconnected to the server');
 });
 
 socket.on('reconnecting', function () {
+    console.debug('reconnecting!');
+
     message('System', 'Attempting to re-connect to the server');
 });
 
 socket.on('error', function (e) {
+    console.debug('error!');
+
     message('System', e ? e : 'A unknown error occurred');
 });
 
 function message (from, msg) {
+    console.debug('on_message->', from, msg);
+
     $('#lines').append($('<p>').append($('<b>').text(from), msg));
 }
 
@@ -64,6 +76,8 @@ $(function () {
     });
 
     $('#send-message').submit(function () {
+        console.debug('send from me starting->', $('#message').val());
+
 	    message('me', $('#message').val());
 	    socket.emit('user message', $('#message').val());
 	    clear();
