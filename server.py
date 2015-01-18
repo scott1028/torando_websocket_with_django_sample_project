@@ -49,6 +49,11 @@ class EchoWebSocket(websocket.WebSocketHandler):
     def open(self):
         print "WebSocket opened, 順便收集入連線池"
         WS_CON_POOL.append(self)
+        self.ping('test123')
+
+    def on_pong(self, data):
+        print data, 'Yes', self
+        pass
 
     def on_connection_close(self):
         super(EchoWebSocket, self)
@@ -84,7 +89,10 @@ class EchoWebSocket(websocket.WebSocketHandler):
                     'namespace': 'broadcast',
                     'message': message
                 }))
-            except Exception:
+
+                con.ping('test_if_connection_alive?')
+            except Exception as e:
+                print e
                 pass
 
     def on_close(self):
@@ -100,7 +108,12 @@ application = tornado.web.Application([
 if __name__ == "__main__":
     # by tornado, websocket feature support
     application.listen(8888)
-    tornado.ioloop.IOLoop.instance().start()
+    server = tornado.ioloop.IOLoop.instance()
+    # import datetime
+    # def callback():
+    #     print 123
+    # server.add_timeout(datetime.timedelta(seconds=5), callback)
+    server.start()
 
     # by wsgi, no websocket
     # import tornado.wsgi
