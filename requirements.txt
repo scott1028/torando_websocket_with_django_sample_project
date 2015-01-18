@@ -6,3 +6,5 @@ websocket-client==0.23.0
 socketIO-client==0.5.3
 gevent-socketio
 ws4py
+mock
+cherrypy
