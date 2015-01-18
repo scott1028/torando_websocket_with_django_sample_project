@@ -16,14 +16,32 @@
     //     console.log(data);
     //     socket.emit('my other event', { my: 'data' });
     // });
+    var message = (new Date()).toJSON() + ';' + location.search;
+    console.log('My Message->', message);
 
     var socket = new WebSocket('ws://127.0.0.1:8888/ws/');
     
-    socket.onmessage=function(data){console.log(data)};
+    socket.onmessage=function(e){
+        try{
+            data = JSON.parse(e.data);
+
+            if(data.length >= 0){
+                console.log(data);
+            }
+            else{
+                console.log('broadcast namespace->', data.namespace, data.message);
+            }
+        }
+        catch(err){
+            console.log(e.data);
+        }
+    };
 
     socket.onopen = function(){
-        socket.send('3213213');
+        socket.send(message);
     };
+
+
 
 </script>
 </body>

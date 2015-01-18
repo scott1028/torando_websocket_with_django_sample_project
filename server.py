@@ -41,9 +41,19 @@ class MainHandler(tornado.web.RequestHandler):
         self.write(data)
 
 
+# Collection All Connection
+WS_CON_POOL = []
+
+
 class EchoWebSocket(websocket.WebSocketHandler):
     def open(self):
-        print "WebSocket opened"
+        print "WebSocket opened, 順便收集入連線池"
+        WS_CON_POOL.append(self)
+
+    def on_connection_close(self):
+        super(EchoWebSocket, self)
+        print 'connection lose, 可能為對方當機或是我方關閉連線, 簡單來說 ping-pong 沒訊號了'
+        WS_CON_POOL.remove(self)
 
     def on_message(self, message):
         from store.models import Person
@@ -54,8 +64,27 @@ class EchoWebSocket(websocket.WebSocketHandler):
         if last_person:
             last_person.delete()
 
+
+        # 
         print 'Client Say:' + message
         self.write_message(data)
+        self.write_message('test second message sent')
+        self.write_message(str(WS_CON_POOL))
+
+
+        # 
+        print 'Boradcase to All'
+        self.write_broadcast(message)
+
+    def write_broadcast(self, message):
+        for con in WS_CON_POOL:
+            try:
+                con.write_message(json.dumps({
+                    'namespace': 'broadcast',
+                    'message': message
+                }))
+            except Exception:
+                pass
 
     def on_close(self):
         print "WebSocket closed"
