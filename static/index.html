@@ -16,32 +16,75 @@
     //     console.log(data);
     //     socket.emit('my other event', { my: 'data' });
     // });
+    var socket;
+    var message_collection = [];
     var message = (new Date()).toJSON() + ';' + location.search;
     console.log('My Message->', message);
 
-    var socket = new WebSocket('ws://127.0.0.1:8888/ws/');
-    
-    socket.onmessage=function(e){
-        try{
-            data = JSON.parse(e.data);
+    var init = function(){
+        socket = new WebSocket('ws://127.0.0.1:8888/ws/');
+        
 
-            if(data.length >= 0){
-                console.log(data);
-            }
-            else{
-                console.log('broadcast namespace->', data.namespace, data.message);
-            }
-        }
-        catch(err){
-            console.log(e.data);
-        }
-    };
+        //
+        var onmessage=function(e){
+            try{
+                data = JSON.parse(e.data);
 
-    socket.onopen = function(){
+                if(data.length >= 0){
+                    console.log(data);
+                    message_collection.push(data);
+                }
+                else{
+                    console.log('broadcast namespace->', data);
+                    message_collection.push(data);
+                }
+            }
+            catch(err){
+                console.log(e.data);
+                message_collection.push(e.data);
+            }
+        };
+
+
+        //
+        var open = function(e){
+            socket.send(message);
+        };
+
+
+        //
+        var onerror = function(e){
+            console.log(231312321);
+            console.log(e);
+        };
+
+
+        // not allow close connection
+        var onclose = function(e){
+            console.log('close!');
+            console.log(e);
+            // var fn;
+            // setTimeout(fn=function(){
+            //     init();
+            //     if(socket.readyState != 1){
+            //         setTimeout(fn, 1000);
+            //     }
+            // }, 1000);
+        }
+
+
+        //
+        socket.onmessage = onmessage;
+        socket.onerror = onerror;
+        socket.onclose = onclose;
+        socket.onopen = open;
+
+        
+        // test error        
         socket.send(message);
     };
 
-
+    init();
 
 </script>
 </body>

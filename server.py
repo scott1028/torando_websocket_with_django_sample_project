@@ -70,7 +70,7 @@ class EchoWebSocket(websocket.WebSocketHandler):
         self.write_message(data)
         self.write_message('test second message sent')
         self.write_message(str(WS_CON_POOL))
-        self.write_message('\x00\x00\x00\x65', binary=True)
+        # self.write_message('\x20', binary=True)
 
 
         # 
