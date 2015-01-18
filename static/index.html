@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+    <!--
+    <script
+        type="text/javascript"
+        src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/1.2.1/socket.io.js">
+    </script>
+    -->
+</head>
+<body>
+<script>
+    // var socket = io('/chat/');
+    // socket.on('chat', function (data) {
+    //     console.log(data);
+    //     socket.emit('my other event', { my: 'data' });
+    // });
+
+    var socket = new WebSocket('ws://127.0.0.1:8888/ws/');
+    
+    socket.onmessage=function(data){console.log(data)};
+
+    socket.onopen = function(){
+        socket.send('3213213');
+    };
+
+</script>
+</body>
+</html>
