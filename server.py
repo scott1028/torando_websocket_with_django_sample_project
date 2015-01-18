@@ -48,12 +48,15 @@ WS_CON_POOL = []
 class EchoWebSocket(websocket.WebSocketHandler):
     def open(self):
         print "WebSocket opened, 順便收集入連線池"
+
+        # add con, ping-pong counter
+        self.ping_counter = 0
+        self.pong_counter = 0
         WS_CON_POOL.append(self)
-        self.ping('test123')
 
     def on_pong(self, data):
         print data, 'Yes', self
-        pass
+        self.pong_counter += 1
 
     def on_connection_close(self):
         super(EchoWebSocket, self)
@@ -61,6 +64,8 @@ class EchoWebSocket(websocket.WebSocketHandler):
         WS_CON_POOL.remove(self)
 
     def on_message(self, message):
+        print 'Total Online Connection->', len(WS_CON_POOL)
+
         from store.models import Person
         from django.core import serializers
         data = serializers.serialize("json", Person.objects.all())
@@ -83,17 +88,26 @@ class EchoWebSocket(websocket.WebSocketHandler):
         self.write_broadcast(message)
 
     def write_broadcast(self, message):
-        for con in WS_CON_POOL:
-            try:
-                con.write_message(json.dumps({
+        for ws in WS_CON_POOL:
+            print ws, ws.ping_counter, ws.pong_counter
+
+            if ws.ping_counter - ws.pong_counter > 10:
+                WS_CON_POOL.remove(ws)
+            else:
+                ws.write_message(json.dumps({
                     'namespace': 'broadcast',
                     'message': message
                 }))
 
-                con.ping('test_if_connection_alive?')
-            except Exception as e:
-                print e
-                pass
+                # 若該連線已經死亡或當機了,
+                # 就不會出現 on_pong Event,
+                # 所以當 ping - pong 數字很大的時候可以考慮關閉該連線.
+                # 
+                # 當然也可以直接寫一個 Thread 來作 Ping-Pong 檢查.
+                # 
+                # 可以透過 tests/test_ws_sample_no_close.py, 來驗證
+                ws.ping('test_if_connection_alive?')
+                ws.ping_counter += 1
 
     def on_close(self):
         print "WebSocket closed"
