@@ -84,4 +84,5 @@ if __name__ == '__main__':
         policy_listener=('0.0.0.0', 10843)).serve_forever()
 
 
+# Demo
 # http://127.0.0.1:8080/chat.html
