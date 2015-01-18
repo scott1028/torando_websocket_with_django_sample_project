@@ -92,7 +92,10 @@ class EchoWebSocket(websocket.WebSocketHandler):
             print ws, ws.ping_counter, ws.pong_counter
 
             if ws.ping_counter - ws.pong_counter > 10:
-                WS_CON_POOL.remove(ws)
+                print '強至關閉無回應的客戶端->', ws
+                ws.close()
+                # on_connection_close, will remove it from WS_CON_POOL
+
             else:
                 ws.write_message(json.dumps({
                     'namespace': 'broadcast',
