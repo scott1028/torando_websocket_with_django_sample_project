@@ -93,6 +93,7 @@ class EchoWebSocket(websocket.WebSocketHandler):
 
             if ws.ping_counter - ws.pong_counter > 10:
                 print '強至關閉無回應的客戶端->', ws
+                print '當然你也可以不計算 ping-pong 讓, TCP/IP 用 heart-beat 檢查, 並且自動關閉連線'
                 ws.close()
                 # on_connection_close, will remove it from WS_CON_POOL
 
@@ -124,7 +125,7 @@ application = tornado.web.Application([
 
 if __name__ == "__main__":
     # by tornado, websocket feature support
-    application.listen(8888)
+    application.listen(3333)
     server = tornado.ioloop.IOLoop.instance()
     # import datetime
     # def callback():

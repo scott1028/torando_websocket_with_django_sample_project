@@ -1,4 +1,5 @@
 # coding: utf-8
+# 使用限制, 如果是 Browser 可能沒有開啟 allow cross-domain 會無法跨網域聯線。
 
 import socket
 
