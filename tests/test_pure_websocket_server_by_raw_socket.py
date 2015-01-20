@@ -5,11 +5,16 @@ import socket
 # coding:utf-8
 # 實作 HTTP Daemon
 
-import socket,re,sys
-import hashlib,base64
-import threading,binascii
+import socket, re, sys
+import hashlib, base64
+import threading, binascii
 import struct
 import time
+
+
+# all client
+CONNECTION_POOL = []
+
 
 def web_socket_handle(con):
     # WebSocket Handle
@@ -30,10 +35,17 @@ def web_socket_handle(con):
     con.send('Sec-WebSocket-Origin: null\r\n\r\n')
     # con.send('Sec-WebSocket-Location: ws://'+host+'/\r\n\r\n')
 
+
 # 處裡接收資料
-def web_socket_data_frame_recv_processor(con):
+def web_socket_data_frame_recv_processor(con, address=None):
+    if address is not None:
+        CONNECTION_POOL.append({
+            'con': con,
+            'address': address
+        })
+
     # 先啟動一個回應中心
-    threading.Thread(target=server_push_processor,args=(con,)).start()
+    # threading.Thread(target=server_push_processor,args=(con,)).start()
 
     while True:
         # 讓 Buffer 大一點可以一次處裡比較大的 Client Send Data Frame, Python 最大也只能到 32768 Bytes
@@ -68,6 +80,7 @@ def web_socket_data_frame_recv_processor(con):
 
     con.close() # WebSocket 不關閉
 
+
 # 處理發送資料
 def web_socket_data_frame_send_processor(pData,con):
     if(pData == False):
@@ -86,30 +99,84 @@ def web_socket_data_frame_send_processor(pData,con):
     con.send(pData)
     return True
 
+
 # Server Push Center
-def server_push_processor(con):
+# def server_push_processor(con):
+#     while True:
+#         web_socket_data_frame_send_processor('我收到了!',con)
+#         print 'send message to->', con
+#         time.sleep(1)
+
+
+# boardcast-service
+def boardcast_service():
     while True:
-        web_socket_data_frame_send_processor('我收到了!',con)
+        print 'Total Connection:', len(CONNECTION_POOL)
+        for obj in CONNECTION_POOL:
+            con = obj.get('con')
+            address = obj.get('address')
+            print 'send message to->', address
+            try:
+                web_socket_data_frame_send_processor(address, con)
+            except Exception as e:
+                print 'Some error and send', e
         time.sleep(1)
 
-sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-sock.bind(("127.0.0.1", 8888))
-sock.listen(10)
 
-while True:
-    print 'wait...'
-    con, address = sock.accept()
-    print 'connected a client...'
+# multi-service
+def launch_service(con, address):
+    print 'connected a client...'    
+    print con, address
+
+    # WebSocket 通信協定實作
+    web_socket_handle(con)
     try:
-        # 因為要避免 con 斷線的時候 host send client 拋錯
-        print con, address
-
-        # WebSocket 通信協定實作
-        web_socket_handle(con)
-
-        # 建立一個 Thread 來處理這個 WebSocket 以免被下一個連線變數名稱給取代了
-        threading.Thread(target=web_socket_data_frame_recv_processor,args=(con,)).start()
+        web_socket_data_frame_recv_processor(con, address)
     except:
-        pass
+        # 移除斷線者
+        con.close()
+        CONNECTION_POOL.remove({
+            'con': con,
+            'address': address
+        })
 
-sock.close()
+
+# boradcast thread
+if 'debug' not in sys.argv:
+    threading.Thread(target=boardcast_service).start()
+
+
+# main
+if __name__ == '__main__':
+    # socket.SOCK_STREAM, 對方如果網路段限過久會報錯, 因為 heart-beat 失敗。
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    
+    # set it keep-alive
+    # 斷線檢測為每秒計送一次
+    enable_keep_alive = 0
+    if enable_keep_alive == 1:
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, enable_keep_alive)
+        sock.setsockopt(socket.SOL_TCP, socket.TCP_KEEPIDLE, 1)
+        sock.setsockopt(socket.SOL_TCP, socket.TCP_KEEPINTVL, 1)
+        sock.setsockopt(socket.SOL_TCP, socket.TCP_KEEPCNT, 1)
+    else:
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, enable_keep_alive)
+    
+    sock.bind(("", 8888))
+    sock.listen(10)
+
+    while True:
+        print 'wait...'
+        con, address = sock.accept()
+        print 'launch a threading for', address
+        
+        if 'debug' not in sys.argv:
+            threading.Thread(target=launch_service, args=(con, address,)).start()
+        else:
+            import pdb; pdb.set_trace()
+
+    sock.close()
+
+
+# 結論:
+#   對方網路段限過久似乎 TCP/IP 網路層會為 heart-beat 失敗而判斷斷線.
